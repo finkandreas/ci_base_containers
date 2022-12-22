@@ -1,0 +1,88 @@
+#!/bin/bash
+
+set -e
+
+POSSIBLE_TARGETS="daint-gpu daint-mc"
+DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
+TARGET=""
+EXT_PACKAGES=""
+
+case $1 in
+    daint-gpu)
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
+        TARGET="haswell"
+        EXT_PACKAGES="    cuda:
+      externals:
+      - spec: cuda@11.7.1
+        prefix: /usr/local/cuda
+      buildable: false"
+        ;;
+    daint-mc)
+        TARGET="broadwell"
+        ;;
+    *)
+        echo "The first argument must be any of '$POSSIBLE_TARGETS'. The rest of the arguments must be valid spack specs"
+        exit 1
+esac
+shift
+
+# at this point the rest of the arguments are supposed to be valid spack sepcs
+
+if [[ -z "${TARGET}" ]] ; then
+    echo "There is a bug in $0, because TARGET is empty"
+    exit 1
+fi
+
+mkdir /opt/spack-environment
+cat - > /opt/spack-environment/spack.yaml << EOF
+spack:
+  packages:
+${EXT_PACKAGES}
+    all:
+      variants: ${DEFAULT_VARIANTS}
+      require: target=${TARGET}
+    mpi:
+      require: 'mpich@3.1.4 netmod=tcp device=ch3'
+  concretizer:
+    unify: true
+    targets:
+      host_compatible: false
+  config:
+    install_tree:
+      root: /opt/software
+      padded_length: 128
+    db_lock_timeout: 120
+  view: /opt/view
+  specs:
+EOF
+for pkg in "$@" ; do
+    echo "  - ${pkg}" >> /opt/spack-environment/spack.yaml
+done
+if [[ -n ${NUM_PROCS} ]] ; then
+    spack config add config:build_jobs:${NUM_PROCS}
+else
+    echo "WARNING: NUM_PROCS is an empty variable. This is not the usual case, and it should be set to the number of processes that you want to use for building the spack software stack."
+fi
+echo "Using spack environment yaml config:"
+cat /opt/spack-environment/spack.yaml
+
+cd /opt/spack-environment
+spack -e . gpg trust /tmp/spack_sign_key.gpg
+spack -e . concretize
+spack -e . env depfile | sed -e 's/$(SPACK_BUILDCACHE_FLAG)/--cache-only/' \
+                             -e 's/# $(SPEC)/ || \\/' \
+                             -e '/+$(SPACK).*install.*only=package.*/ a \\t\t( $(SPACK) -e '"'"'/opt/spack-environment'"'"' install --no-cache $(SPACK_INSTALL_FLAGS) --only-concrete --only=package --no-add /$(notdir $@) && \\\n\t\t ( $(SPACK) -e '"'"'/opt/spack-environment'"'"' buildcache create --allow-root --rebuild-index --force -m s3_cscs_buildcache --only=package /$(notdir $@) || true ) )' > Makefile
+make -j$NUM_PROCS SPACK_COLOR=always --output-sync=recurse
+spack -e . gc -y
+
+# Strip all the binaries
+find -L /opt/view/* -type f -exec readlink -f '{}' \; | \
+    xargs file -i | \
+    grep 'charset=binary' | \
+    grep 'x-executable\|x-archive\|x-sharedlib' | \
+    awk -F: '{print $1}' | xargs strip -s || true
+
+# Modifications to the environment that are necessary to run
+cd /opt/spack-environment
+spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
+echo 'export CPATH=/opt/view/include:$CPATH' >> /etc/profile.d/z10_spack_environment.sh
