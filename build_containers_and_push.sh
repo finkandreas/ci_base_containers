@@ -16,7 +16,7 @@ for spackver in "v0.19.0" ; do
         # do the same for cuda base images
         for cudaver in "11.7.1" ; do
             cuda_baseimg=docker.io/nvidia/cuda:${cudaver}-devel-${OS_DOCKER_TAG}
-            cuda_rtimg=docker.io/nvidia/cuda:${cudaver}-runtime-${OS_DOCKER_TAG}
+            cuda_rtimg=docker.io/nvidia/cuda:${cudaver}-devel-${OS_DOCKER_TAG}
             CUDA_BASE_RETAG_NAME=finkandreas/spack:base-cuda${cudaver}-${OS_DOCKER_TAG}
             CUDA_DOCKER_TAG=finkandreas/spack:${SPACK_DOCKER_TAG}-cuda${cudaver}-${OS_DOCKER_TAG}
             docker build -f docker/Dockerfile_spack_baseimage_${OS_DOCKER_TAG}_gpu --build-arg BASEIMG=$cuda_baseimg --build-arg SPACK_VER=$spackver -t ${CUDA_DOCKER_TAG} .
