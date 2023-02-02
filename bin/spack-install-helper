@@ -1,0 +1,90 @@
+#!/bin/bash
+
+set -e
+
+POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu"
+DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
+CUDA_EXTERNAL_DEF=""
+
+case $1 in
+    daint-gpu)
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
+        CUDA_EXTERNAL_DEF="cuda: {externals:[{spec: cuda@$CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        TARGET="haswell"
+        ;;
+    daint-mc)
+        TARGET="broadwell"
+        ;;
+    hohgant-cpu)
+        TARGET="zen2"
+        ;;
+    *)
+        echo "The first argument must be any of '$POSSIBLE_TARGETS'. The rest of the arguments must be valid spack specs"
+        exit 1
+esac
+shift
+
+
+# at this point the rest of the arguments are supposed to be valid spack sepcs
+
+if [[ -z "${TARGET}" ]] ; then
+    echo "There is a bug in $0, because TARGET is empty"
+    exit 1
+fi
+
+cat - > /dev/shm/enforce_microarchitecture.yaml << EOF
+packages:
+  all:
+    require: target=$TARGET
+  mpi:
+    require: 'mpich@3.1.4 netmod=tcp device=ch3'
+EOF
+cat - > /dev/shm/best_effort_microarchitecutre.yaml << EOF
+packages:
+  all:
+    target: [$TARGET]
+    providers:
+      mpi:
+      - mpich@3.1.4
+EOF
+
+mkdir /opt/spack-environment
+env DEFAULT_VARIANTS="$DEFAULT_VARIANTS" \
+    CUDA_EXTERNAL_DEF="$CUDA_EXTERNAL_DEF" \
+    python3 -c 'import os,sys; sys.stdout.write(os.path.expandvars(sys.stdin.read()))' <  /opt/spack_env.yaml.template > /opt/spack-environment/spack.yaml
+
+if ! spack -e /opt/spack-environment config add -f /dev/shm/enforce_microarchitecture.yaml ; then
+    # versions lower than 0.19.0 do not support the `require` keyword, hence we use the best effort strategy.
+    # This way the concretizer could successfully concretize without enforcing the target microarchitecture,
+    # which we actually do NOT want, but there is no better way in versions <0.19.0
+    spack -e /opt/spack-environment config add -f /dev/shm/best_effort_microarchitecutre.yaml
+fi
+
+spack -e /opt/spack-environment add 'mpich@3.1.4 netmod=tcp device=ch3'
+spack -e /opt/spack-environment add "$@"
+if [[ -n ${NUM_PROCS} ]] ; then
+    spack config add config:build_jobs:${NUM_PROCS}
+else
+    echo "WARNING: NUM_PROCS is an empty variable. This is not the usual case, and it should be set to the number of processes that you want to use for building the spack software stack."
+fi
+echo "Using spack environment yaml config:"
+cat /opt/spack-environment/spack.yaml
+
+cd /opt/spack-environment
+spack -e . gpg trust /tmp/spack_sign_key.gpg || echo 'Warning: Could not add spack sign key, i.e. your packages cannot be added to the buildcache'
+spack -e . concretize
+spack -e . env depfile | spack-modify-makefile-push-buildcache > Makefile
+make -j$NUM_PROCS SPACK_COLOR=always --output-sync=recurse
+spack -e . gc -y
+
+# Strip all the binaries
+find -L /opt/view/* -type f -exec readlink -f '{}' \; | \
+    xargs file -i | \
+    grep 'charset=binary' | \
+    grep 'x-executable\|x-archive\|x-sharedlib' | \
+    awk -F: '{print $1}' | xargs strip -s || true
+
+# Modifications to the environment that are necessary to run
+cd /opt/spack-environment
+spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
+echo 'export CPATH=/opt/view/include:$CPATH' >> /etc/profile.d/z10_spack_environment.sh

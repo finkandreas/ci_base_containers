@@ -7,7 +7,6 @@ ARG SPACK_REPO=https://github.com/finkandreas/spack
 ARG SPACK_VER=v0.19.0
 ENV SPACK_ROOT=/opt/spack
 
-# This list corresponds mostly to the list from the spack dockerfile (share/spack/docker/ubuntu-1804.dockerfile)
 RUN apt-get update \
   && env DEBIAN_FRONTEND=noninteractive TZ=Europe/Zurich \
   apt-get -yqq install --no-install-recommends \
@@ -60,8 +59,8 @@ RUN spack mirror add s3_cscs_buildcache https://object.cscs.ch/v1/AUTH_21e698ff1
   && spack buildcache keys -it \
   && spack spec hdf5+mpi
 
-COPY spack-install-helper /usr/local/bin/spack-install-helper
+COPY bin/* /usr/local/bin
+COPY spack_env.yaml /opt/spack_env.yaml.template
 
 ENTRYPOINT ["/bin/bash", "/opt/spack/share/spack/docker/entrypoint.bash"]
 CMD ["interactive-shell"]
-

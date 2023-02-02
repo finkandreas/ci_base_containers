@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+# rebuild ld database
+ldconfig
+
+# correctly link /opt/view
+ln -s /opt/._view/* /opt/view
+

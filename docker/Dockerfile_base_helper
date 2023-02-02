@@ -1,0 +1,11 @@
+ARG BASEIMG=docker.io/ubuntu:22.04
+FROM $BASEIMG
+
+RUN (echo "/opt/view/lib" \
+  && echo "/opt/view/lib64") > /etc/ld.so.conf.d/spack.conf
+
+COPY bin/fix_spack_install /usr/local/bin/fix_spack_install
+
+ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l", "-c"]
+CMD ["/bin/bash"]
+SHELL ["/bin/bash", "--rcfile", "/etc/profile", "-l", "-c"]
