@@ -7,7 +7,7 @@ function echo_run() {
     "$@"
 }
 
-for spackver in "v0.18.1" "v0.19.0" ; do
+for spackver in "v0.18.1" "v0.19.1" ; do
     for baseimg in docker.io/ubuntu:22.04 ; do
         SPACK_DOCKER_TAG=$(echo $spackver | sed -e 's/^v//')
         OS_DOCKER_TAG=$(basename "$baseimg" | sed -e 's/://')
