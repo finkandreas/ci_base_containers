@@ -16,7 +16,7 @@ for line in fileinput.input():
     if match:
         found_install = True
         # remove the tab at start of line AND the part at the end of the line (comment for spack-0.19, touch $@ for spack-0.18)
-        install_line = match[0].replace(match[1], '|| \\')[1:]
+        install_line = match[0].replace(match[1], '|| \\')[2:]
         if install_line.find('$(SPACK_BUILDCACHE_FLAG)') != -1:
             install_line_cache = install_line.replace('$(SPACK_BUILDCACHE_FLAG)', '--cache-only')
             install_line_nocache = install_line.replace('$(SPACK_BUILDCACHE_FLAG)', '--no-cache').replace(' || \\', ' && \\')
@@ -24,7 +24,7 @@ for line in fileinput.input():
             assert install_line.find(' install ') != -1
             install_line_cache = install_line.replace(' install ', ' install --cache-only ')
             install_line_nocache = install_line.replace(' install ', ' install --no-cache ').replace(' || \\', ' && \\')
-        print(f'\t{install_line_cache}')
+        print(f'\t+{install_line_cache}')
         print(f'\t  ( {install_line_nocache}')
         print(f"\t    ( $(SPACK) -e '/opt/spack-environment' buildcache create --allow-root --rebuild-index --force -m s3_cscs_buildcache --only=package /$(notdir $@) || true ) ) # $(SPEC)")
         if match[1].find('touch $@') != -1:
