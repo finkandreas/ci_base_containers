@@ -31,10 +31,13 @@ COPY --from=builder /opt/software /opt/software
 COPY --from=builder /opt/._view /opt/._view
 COPY --from=builder /etc/profile.d/z10_spack_environment.sh /etc/profile.d/z10_spack_environment.sh
 
+# Some boilerplate to get all paths correctly - fix_spack_install is part of the base image
+# and makes sure that all important things are being correctly setup
 RUN fix_spack_install
 
+# Finally install software that is needed, e.g. compilers
+# It is also possible to build compilers via spack and let all dependencies be handled by spack
 RUN apt-get -yqq update && apt-get -yqq upgrade \
  && apt-get -yqq install build-essential gfortran \
  && rm -rf /var/lib/apt/lists/*
 ```
-
