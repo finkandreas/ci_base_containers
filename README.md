@@ -1,6 +1,6 @@
 Software can be installed with the help of the helper script. A typical `Dockerfile` would be:
 
-```
+```Dockerfile
 FROM docker.io/finkandreas/spack:0.19.1-ubuntu22.04 as builder
 
 ARG NUM_PROCS
