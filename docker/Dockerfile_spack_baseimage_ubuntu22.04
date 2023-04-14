@@ -54,8 +54,8 @@ RUN mkdir -p /root/.spack \
 WORKDIR /root
 SHELL ["docker-shell"]
 
-RUN spack mirror add s3_cscs_buildcache https://object.cscs.ch/v1/AUTH_21e698ff1238438fabc72e5cf9d59165/anfink_spack_cache \
-  && spack mirror set-url --push --s3-endpoint-url https://object.cscs.ch s3_cscs_buildcache s3://anfink_spack_cache \
+RUN spack mirror add --scope site s3_cscs_buildcache https://object.cscs.ch/v1/AUTH_21e698ff1238438fabc72e5cf9d59165/anfink_spack_cache \
+  && spack mirror set-url --scope site --push --s3-endpoint-url https://object.cscs.ch s3_cscs_buildcache s3://anfink_spack_cache \
   && spack buildcache keys -it \
   && spack spec hdf5+mpi
 
