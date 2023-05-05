@@ -41,7 +41,8 @@ RUN mkdir -p $SPACK_ROOT \
   && git clone -b ${SPACK_VER} ${SPACK_REPO} ${SPACK_ROOT} \
   && ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash /usr/local/bin/docker-shell \
   && ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash /usr/local/bin/interactive-shell \
-  && ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash /usr/local/bin/spack-env
+  && ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash /usr/local/bin/spack-env \
+  && echo '[[ -v MODULEPATH ]] && unset MODULEPATH' >> $SPACK_ROOT/share/spack/setup-env.sh
 
 ENV LANGUAGE en_US.UTF-8
 ENV LANG en_US.UTF-8
@@ -61,6 +62,9 @@ RUN spack mirror add --scope site s3_cscs_buildcache https://object.cscs.ch/v1/A
 
 COPY bin/* /usr/local/bin
 COPY spack_env.yaml /opt/spack_env.yaml.template
+
+# Re-export CUDA_VERSION, because nvidia/sarus think that this is a precious variable that needs protection and must be erased
+ENV ALSO_CUDA_VERSION=$CUDA_VERSION
 
 ENTRYPOINT ["/bin/bash", "/opt/spack/share/spack/docker/entrypoint.bash"]
 CMD ["interactive-shell"]
