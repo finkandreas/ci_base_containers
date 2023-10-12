@@ -9,7 +9,7 @@ CUDA_EXTERNAL_DEF=""
 case $1 in
     daint-gpu)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
-        CUDA_EXTERNAL_DEF="cuda: {externals:[{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        CUDA_EXTERNAL_DEF="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
         TARGET="haswell"
         ;;
     daint-mc)
