@@ -1,6 +1,7 @@
 spack:
   packages:
     $CUDA_EXTERNAL_DEF
+    $ROCM_EXTERNAL_DEF
     all:
       variants: $DEFAULT_VARIANTS
   concretizer:

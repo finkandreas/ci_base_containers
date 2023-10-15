@@ -2,9 +2,18 @@
 
 set -e
 
-POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu"
+# cuda compute capability:
+# P100 = 6.0
+# A100 = 8.0
+# H100 = 9.0
+
+# TODO
+# hohgant -> alps
+
+POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu hohgant-nvgpu hohgant-amdgpu"
 DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
 CUDA_EXTERNAL_DEF=""
+ROCM_EXTERNAL_DEF=""
 
 case $1 in
     daint-gpu)
@@ -16,7 +25,59 @@ case $1 in
         TARGET="broadwell"
         ;;
     hohgant-cpu)
-        TARGET="zen2"
+        TARGET="zen2" # AMD EPYC 7742 64-Core Processor
+        ;;
+    hohgant-nvgpu)
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=80 +cuda" # NVIDIA A100-SXM4-80GB
+        CUDA_EXTERNAL_DEF="cuda: {externals:[{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        TARGET="zen3" # AMD EPYC 7713 64-Core Processor
+        ;;
+    hohgant-amdgpu)
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} amdgpu_target=gfx90a:xnack- +rocm" # gfx90a (amdgcn-amd-amdhsa--gfx90a:sramecc+:xnack-)
+        ROCM_EXTERNAL_DEF=$(cat <<- EOF
+llvm-amdgpu:
+      externals:
+      - spec: llvm-amdgpu@5.3.3 ~rocm-device-libs
+        prefix: /opt/rocm-5.3.3/llvm
+      buildable: false
+    rocm-device-libs:
+      externals:
+      - spec: rocm-device-libs@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+    hip:
+      externals:
+      - spec: hip@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+    rocblas:
+      externals:
+      - spec: rocblas@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+    rocsolver:
+      externals:
+      - spec: rocsolver@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+    rocprim:
+      externals:
+      - spec: rocprim@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+    rocthrust:
+      externals:
+      - spec: rocthrust@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+    hsa-rocr-dev:
+      externals:
+      - spec: hsa-rocr-dev@5.3.3
+        prefix: /opt/rocm-5.3.3
+      buildable: false
+EOF
+)
+        TARGET="zen3" # TODO AMD EPYC 7A53 64-Core Processor # TODO is it 7A53 or 7453?
         ;;
     *)
         echo "The first argument must be any of '$POSSIBLE_TARGETS'. The rest of the arguments must be valid spack specs"
@@ -43,6 +104,7 @@ EOF
 mkdir /opt/spack-environment
 env DEFAULT_VARIANTS="$DEFAULT_VARIANTS" \
     CUDA_EXTERNAL_DEF="$CUDA_EXTERNAL_DEF" \
+    ROCM_EXTERNAL_DEF="$ROCM_EXTERNAL_DEF" \
     python3 -c 'import os,sys; sys.stdout.write(os.path.expandvars(sys.stdin.read()))' <  /opt/spack_env.yaml.template > /opt/spack-environment/spack.yaml
 
 spack -e /opt/spack-environment config add -f /dev/shm/enforce_microarchitecture.yaml
