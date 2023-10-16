@@ -39,6 +39,7 @@ import subprocess
 spack_out = subprocess.run(["spack", "--version"], capture_output=True, text=True)
 spack_version = spack_out.stdout.strip()
 spack_version = spack_version.split(".", 2)
+
 match spack_version:
     case ["0", "19", _]:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package --no-add /\$\(notdir \$@\) (.*)')
