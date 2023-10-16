@@ -18,10 +18,6 @@ import subprocess
 
 # This script replaces "spack install" call in a makefile, one of these
 #
-# Spack-0.18
-# TODO
-#+$(SPACK) -e '/opt/spack-environment' install $(SPACK_INSTALL_FLAGS) --only-concrete --only=package --no-add /$(notdir $@) && touch $@
-#
 # Spack 0.19
 #+$(SPACK) -e '/opt/spack-environment' install $(SPACK_BUILDCACHE_FLAG) $(SPACK_INSTALL_FLAGS) --only-concrete --only=package --no-add /$(notdir $@) # $(SPEC)
 #
@@ -43,9 +39,6 @@ import subprocess
 spack_out = subprocess.run(["spack", "--version"], capture_output=True, text=True)
 spack_version = spack_out.stdout.strip()
 match spack_version:
-    case "0.18.1":
-        # TODO
-        install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package --no-add /\$\(notdir \$@\) (.*)')
     case "0.19.2":
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package --no-add /\$\(notdir \$@\) (.*)')
     case "0.20.1":
