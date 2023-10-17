@@ -12,13 +12,59 @@ set -e
 
 POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu hohgant-nvgpu hohgant-amdgpu"
 DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
+ROCM_VERSION="5.2.4"
 CUDA_EXTERNAL_DEF=""
 ROCM_EXTERNAL_DEF=""
+
+CUDA_EXTERNAL_DEF_TEMPLATE="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+ROCM_EXTERNAL_DEF_TEMPLATE=$(cat <<- EOF
+llvm-amdgpu:
+      externals:
+      - spec: llvm-amdgpu@${ROCM_VERSION} ~rocm-device-libs
+        prefix: /opt/rocm-${ROCM_VERSION}/llvm
+      buildable: false
+    rocm-device-libs:
+      externals:
+      - spec: rocm-device-libs@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    hip:
+      externals:
+      - spec: hip@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocblas:
+      externals:
+      - spec: rocblas@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocsolver:
+      externals:
+      - spec: rocsolver@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocprim:
+      externals:
+      - spec: rocprim@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocthrust:
+      externals:
+      - spec: rocthrust@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    hsa-rocr-dev:
+      externals:
+      - spec: hsa-rocr-dev@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+EOF
+)
 
 case $1 in
     daint-gpu)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
-        CUDA_EXTERNAL_DEF="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
         TARGET="haswell"
         ;;
     daint-mc)
@@ -29,54 +75,12 @@ case $1 in
         ;;
     hohgant-nvgpu)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=80 +cuda" # NVIDIA A100-SXM4-80GB
-        CUDA_EXTERNAL_DEF="cuda: {externals:[{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
         TARGET="zen3" # AMD EPYC 7713 64-Core Processor
         ;;
     hohgant-amdgpu)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} amdgpu_target=gfx90a:xnack- +rocm" # gfx90a (amdgcn-amd-amdhsa--gfx90a:sramecc+:xnack-)
-        ROCM_EXTERNAL_DEF=$(cat <<- EOF
-llvm-amdgpu:
-      externals:
-      - spec: llvm-amdgpu@5.3.3 ~rocm-device-libs
-        prefix: /opt/rocm-5.3.3/llvm
-      buildable: false
-    rocm-device-libs:
-      externals:
-      - spec: rocm-device-libs@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-    hip:
-      externals:
-      - spec: hip@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-    rocblas:
-      externals:
-      - spec: rocblas@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-    rocsolver:
-      externals:
-      - spec: rocsolver@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-    rocprim:
-      externals:
-      - spec: rocprim@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-    rocthrust:
-      externals:
-      - spec: rocthrust@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-    hsa-rocr-dev:
-      externals:
-      - spec: hsa-rocr-dev@5.3.3
-        prefix: /opt/rocm-5.3.3
-      buildable: false
-EOF
-)
+        ROCM_EXTERNAL_DEF=${ROCM_EXTERNAL_DEF_TEMPLATE}
         TARGET="zen3" # TODO AMD EPYC 7A53 64-Core Processor # TODO is it 7A53 or 7453?
         ;;
     *)
