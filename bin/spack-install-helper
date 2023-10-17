@@ -9,7 +9,7 @@ CUDA_EXTERNAL_DEF=""
 case $1 in
     daint-gpu)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
-        CUDA_EXTERNAL_DEF="cuda: {externals:[{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        CUDA_EXTERNAL_DEF="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
         TARGET="haswell"
         ;;
     daint-mc)
@@ -39,26 +39,13 @@ packages:
   mpi:
     require: 'mpich@3.1.4 netmod=tcp device=ch3'
 EOF
-cat - > /dev/shm/best_effort_microarchitecutre.yaml << EOF
-packages:
-  all:
-    target: [$TARGET]
-    providers:
-      mpi:
-      - mpich@3.1.4
-EOF
 
 mkdir /opt/spack-environment
 env DEFAULT_VARIANTS="$DEFAULT_VARIANTS" \
     CUDA_EXTERNAL_DEF="$CUDA_EXTERNAL_DEF" \
     python3 -c 'import os,sys; sys.stdout.write(os.path.expandvars(sys.stdin.read()))' <  /opt/spack_env.yaml.template > /opt/spack-environment/spack.yaml
 
-if ! spack -e /opt/spack-environment config add -f /dev/shm/enforce_microarchitecture.yaml ; then
-    # versions lower than 0.19.0 do not support the `require` keyword, hence we use the best effort strategy.
-    # This way the concretizer could successfully concretize without enforcing the target microarchitecture,
-    # which we actually do NOT want, but there is no better way in versions <0.19.0
-    spack -e /opt/spack-environment config add -f /dev/shm/best_effort_microarchitecutre.yaml
-fi
+spack -e /opt/spack-environment config add -f /dev/shm/enforce_microarchitecture.yaml
 
 spack -e /opt/spack-environment add 'mpich@3.1.4 netmod=tcp device=ch3'
 spack -e /opt/spack-environment add "$@"
