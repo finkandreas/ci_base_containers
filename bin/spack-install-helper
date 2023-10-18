@@ -12,7 +12,6 @@ set -e
 
 POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu hohgant-nvgpu hohgant-amdgpu"
 DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
-ROCM_VERSION="5.2.4"
 CUDA_EXTERNAL_DEF=""
 ROCM_EXTERNAL_DEF=""
 
