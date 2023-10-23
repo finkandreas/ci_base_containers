@@ -72,6 +72,7 @@ COPY spack_env.yaml /opt/spack_env.yaml.template
 ENV ALSO_CUDA_VERSION=$CUDA_VERSION
 # Export ROCM_VERSION
 ARG ROCM_VERSION=5.7
+ENV ROCM_VERSION=$ROCM_VERSION
 
 ENTRYPOINT ["/bin/bash", "/opt/spack/share/spack/docker/entrypoint.bash"]
 CMD ["interactive-shell"]
