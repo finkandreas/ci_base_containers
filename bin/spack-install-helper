@@ -14,6 +14,7 @@ POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu hohgant-nvgpu hohgant-amdgpu"
 DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
 CUDA_EXTERNAL_DEF=""
 ROCM_EXTERNAL_DEF=""
+ROCM_ARCH=""
 
 CUDA_EXTERNAL_DEF_TEMPLATE="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
 ROCM_EXTERNAL_DEF_TEMPLATE=$(cat <<- EOF
@@ -80,6 +81,7 @@ case $1 in
     hohgant-amdgpu)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} amdgpu_target=gfx90a:xnack- +rocm" # gfx90a (amdgcn-amd-amdhsa--gfx90a:sramecc+:xnack-)
         ROCM_EXTERNAL_DEF=${ROCM_EXTERNAL_DEF_TEMPLATE}
+        ROCM_ARCH="gfx90a"
         TARGET="zen3" # TODO AMD EPYC 7A53 64-Core Processor # TODO is it 7A53 or 7453?
         ;;
     *)
@@ -140,3 +142,7 @@ find -L /opt/view/* -type f -exec readlink -f '{}' \; | \
 cd /opt/spack-environment
 spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 echo 'export CPATH=/opt/view/include:$CPATH' >> /etc/profile.d/z10_spack_environment.sh
+if [ -n "$ROCM_ARCH" ]; then
+    HIPCC_COMPILE_FLAGS_APPEND="--offload-arch=${ROCM_ARCH}"
+    echo 'export HIPCC_COMPILE_FLAGS_APPEND=${HIPCC_COMPILE_FLAGS_APPEND}' >> /etc/profile.d/z11_compiler_flags.sh
+fi
