@@ -35,7 +35,9 @@ for spackver in "v0.19.2" "v0.20.2" ; do
             rocm_baseimg=docker.io/rocm/dev-ubuntu-22.04:${rocmver}-complete
             ROCM_BASE_TAG_NAME=finkandreas/spack:base-rocm${rocmver}-${OS_DOCKER_TAG}
             ROCM_DOCKER_TAG=finkandreas/spack:${SPACK_DOCKER_TAG}-rocm${rocmver}-${OS_DOCKER_TAG}
-            echo_run podman build -f docker/Dockerfile_spack_baseimage_${OS_DOCKER_TAG} --format docker --build-arg BASEIMG=$rocm_baseimg --build-arg SPACK_VER=$spackver --build-arg ROCM_VERSION=$rocmver -t ${ROCM_DOCKER_TAG} .
+            ROCM_ARCH="gfx90a"
+            HIPCC_COMPILE_FLAGS_APPEND="--offload-arch=${ROCM_ARCH}"
+            echo_run podman build -f docker/Dockerfile_spack_baseimage_${OS_DOCKER_TAG} --format docker --build-arg BASEIMG=$rocm_baseimg --build-arg SPACK_VER=$spackver --build-arg ROCM_VERSION=$rocmver--build-arg HIPCC_COMPILE_FLAGS_APPEND=$HIPCC_COMPILE_FLAGS_APPEND -t ${ROCM_DOCKER_TAG} .
             echo_run podman build -f docker/Dockerfile_base_helper --format docker --build-arg BASEIMG=$rocm_baseimg -t ${ROCM_BASE_TAG_NAME} .
             echo_run podman push $ROCM_BASE_TAG_NAME
             echo_run podman push $ROCM_DOCKER_TAG
