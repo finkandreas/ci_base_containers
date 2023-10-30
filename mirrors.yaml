@@ -1,0 +1,8 @@
+mirrors:
+  s3_cscs_buildcache:
+    fetch:
+      url: https://object.cscs.ch/v1/AUTH_21e698ff1238438fabc72e5cf9d59165/anfink_spack_cache
+    push:
+      url: s3://anfink_spack_cache
+      endpoint_url: https://object.cscs.ch
+
