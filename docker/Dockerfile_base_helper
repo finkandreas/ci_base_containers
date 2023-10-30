@@ -1,9 +1,6 @@
 ARG BASEIMG=docker.io/ubuntu:22.04
 FROM $BASEIMG
 
-ARG HIPCC_COMPILE_FLAGS_APPEND=
-ENV HIPCC_COMPILE_FLAGS_APPEND=$HIPCC_COMPILE_FLAGS_APPEND
-
 RUN (echo "/opt/view/lib" \
   && echo "/opt/view/lib64") > /etc/ld.so.conf.d/spack.conf
 
