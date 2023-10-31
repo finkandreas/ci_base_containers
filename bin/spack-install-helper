@@ -144,5 +144,8 @@ spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 echo 'export CPATH=/opt/view/include:$CPATH' >> /etc/profile.d/z10_spack_environment.sh
 if [ -n "$ROCM_ARCH" ]; then
     HIPCC_COMPILE_FLAGS_APPEND="\"--offload-arch=${ROCM_ARCH}\""
-    echo "export HIPCC_COMPILE_FLAGS_APPEND=${HIPCC_COMPILE_FLAGS_APPEND}" >> /etc/profile.d/z11_compiler_flags.sh
+
+    echo "" >> /etc/profile.d/z10_spack_environment.sh
+    echo "# Add hipcc compile flags" >> /etc/profile.d/z10_spack_environment.sh
+    echo "export HIPCC_COMPILE_FLAGS_APPEND=${HIPCC_COMPILE_FLAGS_APPEND}" >> /etc/profile.d/z10_spack_environment.sh
 fi
