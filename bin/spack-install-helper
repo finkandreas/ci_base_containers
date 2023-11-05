@@ -12,6 +12,7 @@ DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
 CUDA_EXTERNAL_DEF=""
 ROCM_EXTERNAL_DEF=""
 ROCM_ARCH=""
+CUDA_ARCH=""
 
 # TODO Remove this and hohgant-* below and update POSSIBLE_TARGETS when hohgant is shut down
 # Target aliases: print warning
@@ -96,7 +97,8 @@ EOF
 
 case $1 in
     daint-gpu)
-        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
+        CUDA_ARCH="60"
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=${CUDA_ARCH} +cuda"
         CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
         TARGET="haswell"
         ;;
@@ -107,7 +109,8 @@ case $1 in
         TARGET="zen2" # AMD EPYC 7742 64-Core Processor
         ;;
     alps-a100|hohgant-nvgpu)
-        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=80 +cuda" # NVIDIA A100-SXM4-80GB
+        CUDA_ARCH="80"
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=${CUDA_ARCH} +cuda" # NVIDIA A100-SXM4-80GB
         CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
         TARGET="zen3" # AMD EPYC 7713 64-Core Processor
         ;;
@@ -182,6 +185,13 @@ find -L /opt/view/* -type f -exec readlink -f '{}' \; | \
 cd /opt/spack-environment
 spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 echo 'export CPATH=/opt/view/include:$CPATH' >> /etc/profile.d/z10_spack_environment.sh
+if [ -n "$CUDA_ARCH" ]; then
+    NVCC_PREPEND_FLAGS="\"-arch=sm_${CUDA_ARCH}\""
+
+    echo "" >> /etc/profile.d/z10_spack_environment.sh
+    echo "# Add nvcc compile flags" >> /etc/profile.d/z10_spack_environment.sh
+    echo "export NVCC_PREPEND_FLAGS=${NVCC_PREPEND_FLAGS}" >> /etc/profile.d/z10_spack_environment.sh
+fi
 if [ -n "$ROCM_ARCH" ]; then
     HIPCC_COMPILE_FLAGS_APPEND="\"--offload-arch=${ROCM_ARCH}\""
 
