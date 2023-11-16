@@ -7,14 +7,15 @@ set -e
 # A100 = 8.0
 # H100 = 9.0
 
-POSSIBLE_TARGETS="daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a hohgant-cpu hohgant-nvgpu hohgant-amdgpu"
+TARGET_MACHINE=$1
+POSSIBLE_TARGETS="daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a"
 DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
 CUDA_EXTERNAL_DEF=""
 ROCM_EXTERNAL_DEF=""
 ROCM_ARCH=""
 CUDA_ARCH=""
 
-# TODO Remove this and hohgant-* below and update POSSIBLE_TARGETS when hohgant is shut down
+# TODO Remove this when hohgant is shut down
 # Target aliases: print warning
 COLOR_DEFAULT='\033[0m'
 COLOR_YELLOW='\033[0;33m'
@@ -26,18 +27,21 @@ TEMPLATE="${COLOR_YELLOW_BOLD}Warning: the target ${COLOR_RED_BOLD}OLD${COLOR_YE
 
 OLD=""
 NEW=""
-case $1 in
+case $TARGET_MACHINE in
     hohgant-cpu)
         OLD="hohgant-cpu"
         NEW="alps-zen2"
+        TARGET_MACHINE="alps-zen2"
         ;;
     hohgant-nvgpu)
         OLD="hohgant-nvgpu"
         NEW="alps-a100"
+        TARGET_MACHINE="alps-a100"
         ;;
     hohgant-amdgpu)
         OLD="hohgant-amdgpu"
         NEW="alps-mi200"
+        TARGET_MACHINE="alps-mi200"
         ;;
     *)
         ;;
@@ -95,7 +99,7 @@ llvm-amdgpu:
 EOF
 )
 
-case $1 in
+case $TARGET_MACHINE in
     daint-gpu)
         CUDA_ARCH="60"
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=${CUDA_ARCH} +cuda"
@@ -105,16 +109,16 @@ case $1 in
     daint-mc)
         TARGET="broadwell"
         ;;
-    alps-zen2|hohgant-cpu)
+    alps-zen2)
         TARGET="zen2" # AMD EPYC 7742 64-Core Processor
         ;;
-    alps-a100|hohgant-nvgpu)
+    alps-a100)
         CUDA_ARCH="80"
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=${CUDA_ARCH} +cuda" # NVIDIA A100-SXM4-80GB
         CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
         TARGET="zen3" # AMD EPYC 7713 64-Core Processor
         ;;
-    alps-mi200|hohgant-amdgpu)
+    alps-mi200)
         DEFAULT_VARIANTS="${DEFAULT_VARIANTS} amdgpu_target=gfx90a:xnack- +rocm" # gfx90a (amdgcn-amd-amdhsa--gfx90a:sramecc+:xnack-)
         ROCM_EXTERNAL_DEF=${ROCM_EXTERNAL_DEF_TEMPLATE}
         ROCM_ARCH="gfx90a"
