@@ -2,25 +2,138 @@
 
 set -e
 
-POSSIBLE_TARGETS="daint-gpu daint-mc hohgant-cpu"
+# cuda compute capability:
+# P100 = 6.0
+# A100 = 8.0
+# H100 = 9.0
+
+TARGET_MACHINE=$1
+POSSIBLE_TARGETS="daint-gpu daint-mc alps-zen2 alps-a100 alps-mi200 alps-gh200 alps-mi300a"
 DEFAULT_VARIANTS="+openmp +mpi build_type=Release"
 CUDA_EXTERNAL_DEF=""
+ROCM_EXTERNAL_DEF=""
+ROCM_ARCH=""
+CUDA_ARCH=""
 
-case $1 in
+# TODO Remove this when hohgant is shut down
+# Target aliases: print warning
+COLOR_DEFAULT='\033[0m'
+COLOR_YELLOW='\033[0;33m'
+COLOR_YELLOW_BOLD='\033[1;33m'
+COLOR_RED='\033[0;31m'
+COLOR_RED_BOLD='\033[1;31m'
+
+TEMPLATE="${COLOR_YELLOW_BOLD}Warning: the target ${COLOR_RED_BOLD}OLD${COLOR_YELLOW_BOLD} is deprecated and will be removed soon, please use ${COLOR_RED_BOLD}NEW${COLOR_YELLOW_BOLD} instead!!!${COLOR_DEFAULT}"
+
+OLD=""
+NEW=""
+case $TARGET_MACHINE in
+    hohgant-cpu)
+        OLD="hohgant-cpu"
+        NEW="alps-zen2"
+        TARGET_MACHINE="alps-zen2"
+        ;;
+    hohgant-nvgpu)
+        OLD="hohgant-nvgpu"
+        NEW="alps-a100"
+        TARGET_MACHINE="alps-a100"
+        ;;
+    hohgant-amdgpu)
+        OLD="hohgant-amdgpu"
+        NEW="alps-mi200"
+        TARGET_MACHINE="alps-mi200"
+        ;;
+    *)
+        ;;
+esac
+
+if [ -n "$OLD" ]; then
+    WARNING=${TEMPLATE/OLD/$OLD}
+    WARNING=${WARNING/NEW/$NEW}
+    echo -e $WARNING
+fi
+#TODO end remove
+
+CUDA_EXTERNAL_DEF_TEMPLATE="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+ROCM_EXTERNAL_DEF_TEMPLATE=$(cat <<- EOF
+llvm-amdgpu:
+      externals:
+      - spec: llvm-amdgpu@${ROCM_VERSION} ~rocm-device-libs
+        prefix: /opt/rocm-${ROCM_VERSION}/llvm
+      buildable: false
+    rocm-device-libs:
+      externals:
+      - spec: rocm-device-libs@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    hip:
+      externals:
+      - spec: hip@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocblas:
+      externals:
+      - spec: rocblas@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocsolver:
+      externals:
+      - spec: rocsolver@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocprim:
+      externals:
+      - spec: rocprim@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    rocthrust:
+      externals:
+      - spec: rocthrust@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+    hsa-rocr-dev:
+      externals:
+      - spec: hsa-rocr-dev@${ROCM_VERSION}
+        prefix: /opt/rocm-${ROCM_VERSION}
+      buildable: false
+EOF
+)
+
+case $TARGET_MACHINE in
     daint-gpu)
-        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=60 +cuda"
-        CUDA_EXTERNAL_DEF="cuda: {externals: [{spec: cuda@$ALSO_CUDA_VERSION, prefix: /usr/local/cuda}], buildable: false}"
+        CUDA_ARCH="60"
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=${CUDA_ARCH} +cuda"
+        CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
         TARGET="haswell"
         ;;
     daint-mc)
         TARGET="broadwell"
         ;;
-    hohgant-cpu)
-        TARGET="zen2"
+    alps-zen2)
+        TARGET="zen2" # AMD EPYC 7742 64-Core Processor
+        ;;
+    alps-a100)
+        CUDA_ARCH="80"
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} cuda_arch=${CUDA_ARCH} +cuda" # NVIDIA A100-SXM4-80GB
+        CUDA_EXTERNAL_DEF=${CUDA_EXTERNAL_DEF_TEMPLATE}
+        TARGET="zen3" # AMD EPYC 7713 64-Core Processor
+        ;;
+    alps-mi200)
+        DEFAULT_VARIANTS="${DEFAULT_VARIANTS} amdgpu_target=gfx90a:xnack- +rocm" # gfx90a (amdgcn-amd-amdhsa--gfx90a:sramecc+:xnack-)
+        ROCM_EXTERNAL_DEF=${ROCM_EXTERNAL_DEF_TEMPLATE}
+        ROCM_ARCH="gfx90a"
+        TARGET="zen3" # TODO AMD EPYC 7A53 64-Core Processor # TODO is it 7A53 or 7453?
+        ;;
+    alps-gh200)
+        #TODO
+        ;;
+    alps-mi300a)
+        #TODO
         ;;
     *)
         echo "The first argument must be any of '$POSSIBLE_TARGETS'. The rest of the arguments must be valid spack specs"
         exit 1
+        ;;
 esac
 shift
 
@@ -43,6 +156,7 @@ EOF
 mkdir /opt/spack-environment
 env DEFAULT_VARIANTS="$DEFAULT_VARIANTS" \
     CUDA_EXTERNAL_DEF="$CUDA_EXTERNAL_DEF" \
+    ROCM_EXTERNAL_DEF="$ROCM_EXTERNAL_DEF" \
     python3 -c 'import os,sys; sys.stdout.write(os.path.expandvars(sys.stdin.read()))' <  /opt/spack_env.yaml.template > /opt/spack-environment/spack.yaml
 
 spack -e /opt/spack-environment config add -f /dev/shm/enforce_microarchitecture.yaml
@@ -75,3 +189,17 @@ find -L /opt/view/* -type f -exec readlink -f '{}' \; | \
 cd /opt/spack-environment
 spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 echo 'export CPATH=/opt/view/include:$CPATH' >> /etc/profile.d/z10_spack_environment.sh
+if [ -n "$CUDA_ARCH" ]; then
+    NVCC_PREPEND_FLAGS="\"-arch=sm_${CUDA_ARCH}\""
+
+    echo "" >> /etc/profile.d/z10_spack_environment.sh
+    echo "# Add nvcc compile flags" >> /etc/profile.d/z10_spack_environment.sh
+    echo "export NVCC_PREPEND_FLAGS=${NVCC_PREPEND_FLAGS}" >> /etc/profile.d/z10_spack_environment.sh
+fi
+if [ -n "$ROCM_ARCH" ]; then
+    HIPCC_COMPILE_FLAGS_APPEND="\"--offload-arch=${ROCM_ARCH}\""
+
+    echo "" >> /etc/profile.d/z10_spack_environment.sh
+    echo "# Add hipcc compile flags" >> /etc/profile.d/z10_spack_environment.sh
+    echo "export HIPCC_COMPILE_FLAGS_APPEND=${HIPCC_COMPILE_FLAGS_APPEND}" >> /etc/profile.d/z10_spack_environment.sh
+fi
