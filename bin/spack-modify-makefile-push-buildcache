@@ -57,7 +57,7 @@ match spack_version:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package /\$\(HASH\) (.*)')
     case ["0", "21", _]:
         # TODO when Spack 0.21 is released
-        raise ValueError("Unknown Spack version " + ".".join(spack_version))
+        #raise ValueError("Unknown Spack version " + ".".join(spack_version))
     case _:
         raise ValueError("Unknown Spack version " + ".".join(spack_version))
 
