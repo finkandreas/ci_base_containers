@@ -2,6 +2,9 @@
 
 set -e
 
+COLOR_RED='\033[0;31m'
+trap 'echo -e "${COLOR_RED}Failed building/pushing container images"' ERR
+
 function echo_run() {
     echo "$@"
     "$@"
@@ -45,3 +48,4 @@ for spackver in "v0.19.2" "v0.20.2" ; do
     done
 done
 
+exit 0
