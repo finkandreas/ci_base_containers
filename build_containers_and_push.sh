@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eE
 
 COLOR_RED='\033[0;31m'
 trap 'echo -e "${COLOR_RED}Failed building/pushing container images"' ERR
