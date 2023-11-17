@@ -25,7 +25,6 @@ import subprocess
 #+$(SPACK) -e '/opt/spack-environment' install $(SPACK_BUILDCACHE_FLAG) $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) # $(SPEC)
 #
 # Spack 0.21
-# TODO when Spack 0.21 is released
 #+$(SPACK) -e '/opt/spack-environment' install $(SPACK_BUILDCACHE_FLAG) $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) # $(SPEC)
 
 # with something like this
@@ -56,8 +55,7 @@ match spack_version:
     case ["0", "20", _]:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package /\$\(HASH\) (.*)')
     case ["0", "21", _]:
-        # TODO when Spack 0.21 is released
-        #raise ValueError("Unknown Spack version " + ".".join(spack_version))
+        install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package /\$\(HASH\) (.*)')
     case _:
         raise ValueError("Unknown Spack version " + ".".join(spack_version))
 
@@ -83,7 +81,6 @@ for line in fileinput.input():
             case ["0", "20", _]:
                 print(f"\t    ( $(SPACK) -e '/opt/spack-environment' buildcache create --allow-root --rebuild-index --force -m s3_cscs_buildcache --only=package /$(HASH) || true ) ) # $(SPEC)")
             case ["0", "21", _]:
-                # TODO when Spack 0.21 is released
                 print(f"\t    ( $(SPACK) -e '/opt/spack-environment' buildcache create --update-index --force --only=package s3_cscs_buildcache /$(HASH) || true ) ) # $(SPEC)")
             case _:
                 raise ValueError("Unknown Spack version " + ".".join(spack_version))
