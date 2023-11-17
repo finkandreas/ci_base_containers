@@ -23,6 +23,9 @@ import subprocess
 #
 # Spack 0.20
 #+$(SPACK) -e '/opt/spack-environment' install $(SPACK_BUILDCACHE_FLAG) $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) # $(SPEC)
+#
+# Spack 0.21
+#+$(SPACK) -e '/opt/spack-environment' install $(SPACK_BUILDCACHE_FLAG) $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) # $(SPEC)
 
 # with something like this
 #
@@ -35,6 +38,11 @@ import subprocess
 # +$(SPACK) -e '/opt/spack-environment' install --cache-only $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) || \
 #   ( $(SPACK) -e '/opt/spack-environment' install --no-cache $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) && \
 #     ( $(SPACK) -e '/opt/spack-environment' buildcache create --allow-root --rebuild-index --force -m s3_cscs_buildcache --only=package /$(HASH) || true ) ) # $(SPEC)
+#
+# Spack 0.21
+# +$(SPACK) -e '/opt/spack-environment' install --cache-only $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) || \
+#   ( $(SPACK) -e '/opt/spack-environment' install --no-cache $(SPACK_INSTALL_FLAGS) --only-concrete --only=package /$(HASH) && \
+#     ( $(SPACK) -e '/opt/spack-environment' buildcache push --update-index --force --only=package s3_cscs_buildcache /$(HASH) || true ) ) # $(SPEC)
 
 spack_out = subprocess.run(["spack", "--version"], capture_output=True, text=True)
 spack_version = spack_out.stdout.strip()
@@ -43,7 +51,7 @@ spack_version = spack_version.split(".", 2)
 match spack_version:
     case ["0", "19", _]:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package --no-add /\$\(notdir \$@\) (.*)')
-    case ["0", "20", _]:
+    case ["0", "20", _] | ["0", "21", _]:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package /\$\(HASH\) (.*)')
     case _:
         raise ValueError("Unknown Spack version " + ".".join(spack_version))
@@ -69,6 +77,8 @@ for line in fileinput.input():
                 print(f"\t    ( $(SPACK) -e '/opt/spack-environment' buildcache create --allow-root --rebuild-index --force -m s3_cscs_buildcache --only=package /$(notdir $@) || true ) ) # $(SPEC)")
             case ["0", "20", _]:
                 print(f"\t    ( $(SPACK) -e '/opt/spack-environment' buildcache create --allow-root --rebuild-index --force -m s3_cscs_buildcache --only=package /$(HASH) || true ) ) # $(SPEC)")
+            case ["0", "21", _]:
+                print(f"\t    ( $(SPACK) -e '/opt/spack-environment' buildcache push --update-index --force --only=package s3_cscs_buildcache /$(HASH) || true ) ) # $(SPEC)")
             case _:
                 raise ValueError("Unknown Spack version " + ".".join(spack_version))
         if match[1].find('touch $@') != -1:

@@ -12,7 +12,7 @@ function echo_run() {
 
 REMOTE="${1:-docker.io/finkandreas}"
 
-for spackver in "v0.19.2" "v0.20.2" ; do
+for spackver in "v0.20.3" "v0.21.0" ; do
     for baseimg in docker.io/ubuntu:22.04 ; do
         SPACK_DOCKER_TAG=$(echo $spackver | sed -e 's/^v//')
         OS_DOCKER_TAG=$(basename "$baseimg" | sed -e 's/://')
