@@ -51,9 +51,7 @@ spack_version = spack_version.split(".", 2)
 match spack_version:
     case ["0", "19", _]:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package --no-add /\$\(notdir \$@\) (.*)')
-    case ["0", "20", _]:
-        install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package /\$\(HASH\) (.*)')
-    case ["0", "21", _]:
+    case ["0", "20", _] | ["0", "21", _]:
         install_regex = re.compile(r'\t\+\$\(SPACK\) -e .*--only-concrete --only=package /\$\(HASH\) (.*)')
     case _:
         raise ValueError("Unknown Spack version " + ".".join(spack_version))
